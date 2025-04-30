@@ -1,0 +1,23 @@
+version: "3"
+
+services:
+  db:
+    image: postgres:17.4
+    container_name: mosaicnote-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - ".tmp/pg17.4/data:/var/lib/postgresql/data"
+      - ".tmp/pg17.4/backup:/var/data/backup"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+  redis:
+    image: redis:latest
+    container_name: mosaicnote-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ".tmp/redis/data:/data"

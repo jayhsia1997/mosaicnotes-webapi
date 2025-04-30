@@ -1,0 +1,36 @@
+[project]
+name = "mosaicnote-webapi"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Jay Hsia",email = "jayhsia1997@gmail.com"},
+    {name = "Henry Tsao",email = "henrygood32@gmail.com"}
+]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+# core
+fastapi = "*"
+fastapi_limiter = "*"
+uvicorn = "*"
+pydantic = "*"
+pydantic-settings = "*"
+python-dotenv = "*"
+# db
+asyncpg = "*"
+redis = "*"
+sqlalchemy = "*"
+psycopg2-binary = "*"
+# utils
+httpx = "*"
+ujson = "*"
+pytz = "*"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+pytest-asyncio = "*"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
