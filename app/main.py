@@ -3,12 +3,13 @@ main application
 """
 from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.middleware.cors import CORSMiddleware
 
 from app.libs.utils.lifespan import lifespan
 from app.config import settings
 from app.routers import api_router
+from app.container import Container
 
 __all__ = ["app"]
 
@@ -52,6 +53,16 @@ def get_application() -> FastAPI:
 
 
 app = get_application()
+
+
+@app.get("/")
+async def root():
+    """
+    Root path redirects to /docs in development environment
+    """
+    if settings.IS_DEV:
+        return RedirectResponse(url="/docs")
+    return {"message": "Welcome to MosaicNotes API"}
 
 
 @app.exception_handler(HTTPException)

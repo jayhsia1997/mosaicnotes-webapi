@@ -1,5 +1,5 @@
 [project]
-name = "mosaicnote-webapi"
+name = "mosaicnotes-webapi"
 version = "0.1.0"
 description = ""
 authors = [
@@ -7,29 +7,32 @@ authors = [
     {name = "Henry Tsao",email = "henrygood32@gmail.com"}
 ]
 readme = "README.md"
+requires-python = "^3.11"
 
 [tool.poetry.dependencies]
 python = "^3.11"
 # core
-fastapi = "*"
-fastapi_limiter = "*"
+fastapi = "^0.115.0"
+fastapi_limiter = "^0.1.6"
 uvicorn = "*"
 pydantic = "*"
 pydantic-settings = "*"
 python-dotenv = "*"
 # db
-asyncpg = "*"
-redis = "*"
-sqlalchemy = "*"
-psycopg2-binary = "*"
+asyncpg = "^0.30.0"
+redis = "^6.0.0"
+sqlalchemy = "^2.0"
+psycopg2-binary = "^2.9"
 # utils
-httpx = "*"
+dependency-injector = "*"
+httpx = "<1.0.0"
 ujson = "*"
 pytz = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
 pytest-asyncio = "*"
+alembic = "*"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

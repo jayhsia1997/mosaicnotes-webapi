@@ -1,20 +1,16 @@
 """
 Account API Router
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from starlette import status
+from dependency_injector.wiring import inject, Provide
 
-from app.libs.depends import (
-    DEFAULT_RATE_LIMITERS,
-)
+from app.container import Container
+from app.handlers import UserHandler
 from app.route_classes import LogRoute
 from app.serializers.v1.user import UserLogin, LoginResponse
-from app.handlers import UserHandler
 
 router = APIRouter(
-    dependencies=[
-        *DEFAULT_RATE_LIMITERS
-    ],
     route_class=LogRoute
 )
 
@@ -24,11 +20,15 @@ router = APIRouter(
     response_model=LoginResponse,
     status_code=status.HTTP_200_OK
 )
+@inject
 async def login(
     model: UserLogin,
+    user_handler: UserHandler = Depends(Provide[Container.user_handler])
 ) -> LoginResponse:
     """
     Login
+    :param model:
+    :param user_handler:
+    :return:
     """
-    user_handler = UserHandler()
     return await user_handler.login(model=model)

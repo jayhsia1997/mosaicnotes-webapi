@@ -90,3 +90,14 @@ class NotImplementedException(ApiBaseException):
     ):
         super().__init__(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=detail, headers=headers)
         self.debug_detail = kwargs.pop('debug_detail', None)
+
+
+class ParamError(ApiBaseException):
+    """Param Error"""
+
+    def __init__(
+        self,
+        detail: str,
+    ):
+        super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+

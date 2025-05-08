@@ -62,7 +62,7 @@ alembic upgrade head
 #### Create Migration
 
 ```shell
-alembic revision -m "{your message}"
+alembic revision --autogenerate -m "{your message}"
 ```
 
 #### Upgrade Migration

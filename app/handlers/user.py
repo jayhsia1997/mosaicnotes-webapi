@@ -3,14 +3,16 @@ Handler for user-related operations
 """
 from app import exceptions
 from app.libs.consts.enums import LoginMethod
+from app.libs.database import Session
 from app.serializers.v1.user import UserLogin, LoginResponse
 
 
 class UserHandler:
     """UserHandler"""
 
-    def __init__(self):
+    def __init__(self, session: Session = None):
         """initialize"""
+        self._session = session
 
     async def login(self, model: UserLogin) -> LoginResponse:
         """
