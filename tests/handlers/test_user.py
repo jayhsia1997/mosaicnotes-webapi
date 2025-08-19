@@ -1,10 +1,12 @@
 """
 User handler tests.
 """
+from uuid import UUID
+
 import pytest
 
 from app.handlers import UserHandler
-from app.serializers.v1.user import UserRegister, UserLogin
+from app.serializers.v1.user import APIUserRegister, APIUserLogin
 
 
 @pytest.mark.asyncio
@@ -14,7 +16,7 @@ async def test_register(
     """
     Test user registration.
     """
-    user_register_model = UserRegister(
+    user_register_model = APIUserRegister(
         email="dummy@gmail.com",
         display_name="dummy",
         password="abcd1234",
@@ -34,9 +36,23 @@ async def test_login(
     :param user_handler:
     :return:
     """
-    user_login_model = UserLogin(
+    user_login_model = APIUserLogin(
         email="dummy@gmail.com",
         password="abcd1234"
     )
     response = await user_handler.login(model=user_login_model)
+    assert response is not None
+
+@pytest.mark.asyncio
+async def test_get_user_by_id(
+    user_handler: UserHandler,
+):
+    """
+    Test getting user by ID.
+    :param user_handler:
+    :return:
+    """
+    user_id = UUID("2da46043-54cc-45b8-b7f7-aceebdde59b5")
+    response = await user_handler.get_user_by_id(user_id=user_id)
+
     assert response is not None

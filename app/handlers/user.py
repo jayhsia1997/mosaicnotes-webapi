@@ -3,17 +3,19 @@ Handler for user-related operations
 """
 import uuid
 from datetime import datetime, timezone, timedelta
+from typing import Optional, Any, Coroutine
 
 from starlette import status
 
 from app import exceptions
 from app.config import settings
 from app.libs.consts.enums import LoginMethod
+from app.libs.contexts.api_context import get_api_context, APIContext
 from app.libs.database import Session
 from app.models import User, UserProfile, UserSession
 from app.providers.password_provider import PasswordProvider
 from app.schemas.user import UserBase, UserInfo, UserSecurity
-from app.serializers.v1.user import UserLogin, LoginResponse, RegisterResponse, UserRegister
+from app.serializers.v1.user import APIUserLogin, APILoginResponse, APIRegisterResponse, APIUserRegister, APIUserInfo
 
 
 class UserHandler:
@@ -27,8 +29,12 @@ class UserHandler:
         """initialize"""
         self._password_provider = password_provider
         self._session = session
+        try:
+            self._api_context: APIContext = get_api_context()
+        except Exception:
+            self._api_context: APIContext = APIContext()
 
-    async def login(self, model: UserLogin) -> LoginResponse:
+    async def login(self, model: APIUserLogin) -> APILoginResponse:
         """
         Login
         :param model:
@@ -40,7 +46,7 @@ class UserHandler:
             case _:
                 raise exceptions.BadRequestException(detail="Invalid login method")
 
-    async def password_login(self, model: UserLogin) -> LoginResponse:
+    async def password_login(self, model: APIUserLogin) -> APILoginResponse:
         """
         Password login
         :param model:
@@ -87,9 +93,15 @@ class UserHandler:
         finally:
             await self._session.close()
 
-        return LoginResponse(id=user_security.id, sid=sid)
+        return APILoginResponse(id=user_security.id, sid=sid)
 
-    async def register(self, model: UserRegister) -> RegisterResponse:
+    async def logout(self):
+        """
+        # TODO: Implement logout functionality
+        :return:
+        """
+
+    async def register(self, model: APIUserRegister) -> APIRegisterResponse:
         user_base = self._session.select(User).where(User.email == model.email).fetch(UserBase)
         if not user_base:
             raise exceptions.ResourceExistsException(detail="Email already registered")
@@ -125,8 +137,61 @@ class UserHandler:
         finally:
             await self._session.close()
 
-        return RegisterResponse(
+        return APIRegisterResponse(
             id=user_info.id,
             email=user_info.email,
             display_name=user_info.display_name
         )
+
+    async def get_me(self) -> APIUserInfo:
+        """
+        Get current user information
+        :return: UserInfo or None
+        """
+        return await self.get_user_by_id(user_id=self._api_context.user_id)
+
+    async def get_user_by_id(self, user_id: uuid.UUID) -> APIUserInfo:
+        """
+        Get user by ID
+        :param user_id: User ID
+        :return: UserInfo or None
+        """
+        user_info: UserInfo = await self._session.select(
+            User.id,
+            User.email,
+            UserProfile.display_name,
+            UserProfile.gender
+        ).outerjoin(
+            UserProfile, UserProfile.user_id == User.id
+        ).where(User.id == user_id).fetchrow(UserInfo)
+        if not user_info:
+            raise exceptions.NotFoundException(detail="User not found")
+
+        return APIUserInfo(
+            id=user_info.id,
+            email=user_info.email,
+            display_name=user_info.display_name,
+            gender=user_info.gender
+        )
+
+    async def get_user_by_session_id(self, session_id: uuid.UUID) -> Optional[UserInfo]:
+        """
+        Get user by session ID
+        :param session_id: Session ID
+        :return: UserInfo or None
+        """
+        user_id = await self._session.select(UserSession.user_id).where(
+            UserSession.id == session_id
+        ).fetchval()
+
+        if not user_id:
+            return None
+
+        user_info: UserInfo = await self._session.select(
+            User.id.label("id"),
+            User.email.label("email"),
+            UserProfile.display_name.label("display_name")
+        ).outerjoin(
+            UserProfile, UserProfile.user_id == User.id
+        ).where(User.id == user_id).fetchrow(UserInfo)
+        return user_info

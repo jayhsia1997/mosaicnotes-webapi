@@ -2,6 +2,7 @@
 .idea
 .vscode
 .tmp
+temp.py
 
 ### Python template
 # Byte-compiled / optimized / DLL files

@@ -8,8 +8,9 @@ from starlette import status
 from app.config import settings
 from app.container import Container
 from app.handlers import UserHandler
+from app.libs.auth import session_validation
 from app.route_classes import LogRoute
-from app.serializers.v1.user import UserLogin, LoginResponse, UserRegister, RegisterResponse
+from app.serializers.v1.user import APIUserLogin, APILoginResponse, APIUserRegister, APIRegisterResponse, APIUserInfo
 
 router = APIRouter(
     route_class=LogRoute
@@ -18,15 +19,15 @@ router = APIRouter(
 
 @router.post(
     path="/login",
-    response_model=LoginResponse,
+    response_model=APILoginResponse,
     status_code=status.HTTP_200_OK
 )
 @inject
 async def login(
-    model: UserLogin,
+    model: APIUserLogin,
     response: Response,
     user_handler: UserHandler = Depends(Provide[Container.user_handler]),
-) -> LoginResponse:
+) -> APILoginResponse:
     """
     Login
     :param model:
@@ -34,7 +35,7 @@ async def login(
     :param user_handler:
     :return:
     """
-    res: LoginResponse = await user_handler.login(model=model)
+    res: APILoginResponse = await user_handler.login(model=model)
     response.set_cookie(
         key=settings.COOKIE_NAME,
         value=res.sid.hex,
@@ -49,14 +50,14 @@ async def login(
 
 @router.post(
     "/register",
-    response_model=RegisterResponse,
+    response_model=APIRegisterResponse,
     status_code=status.HTTP_201_CREATED
 )
 @inject
 async def register(
-    model: UserRegister,
+    model: APIUserRegister,
     user_handler: UserHandler = Depends(Provide[Container.user_handler]),
-) -> RegisterResponse:
+) -> APIRegisterResponse:
     """
     Register a new user.
     :param model:
@@ -66,22 +67,37 @@ async def register(
     return await user_handler.register(model=model)
 
 
-@router.get("/me", status_code=status.HTTP_200_OK)
-async def me(user_handler: UserHandler = Depends(Provide[Container.user_handler])):
+@router.get(
+    "/me",
+    response_model=APIUserInfo,
+    status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(session_validation)
+    ]
+)
+@inject
+async def me(user_handler: UserHandler = Depends(Provide[Container.user_handler])) -> APIUserInfo:
     """
     Get current user information.
-    # TODO
     :param user_handler:
     :return:
     """
+    return await user_handler.get_me()
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(request: Request, response: Response):
+@inject
+async def logout(
+    request: Request,
+    response: Response,
+    user_handler: UserHandler = Depends(Provide[Container.user_handler])
+):
     """
     Logout user by deleting the session cookie.
-    # TODO
     :param request:
     :param response:
+    :param user_handler:
     :return:
     """
+    await user_handler.logout()
+    # TODO: Implement logout logic in UserHandler

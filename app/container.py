@@ -23,6 +23,7 @@ class Container(containers.DeclarativeContainer):
         packages=[
             "app.handlers",
             "app.routers",
+            "app.libs.auth",
         ]
     )
 

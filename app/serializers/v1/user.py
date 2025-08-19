@@ -1,15 +1,16 @@
 """
 User serializers
 """
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.libs.consts.enums import LoginMethod
+from app.libs.consts.enums import LoginMethod, Gender
 from app.schemas.mixins import UUIDBaseModel
 
 
-class UserLogin(BaseModel):
+class APIUserLogin(BaseModel):
     """
     User login
     """
@@ -18,7 +19,7 @@ class UserLogin(BaseModel):
     password: str = Field(..., description="Password", frozen=True)
 
 
-class LoginResponse(UUIDBaseModel):
+class APILoginResponse(UUIDBaseModel):
     """
     Login response
     """
@@ -26,7 +27,7 @@ class LoginResponse(UUIDBaseModel):
 
 
 # User register
-class UserRegister(BaseModel):
+class APIUserRegister(BaseModel):
     email: str = Field(
         min_length=5,
         max_length=64,
@@ -37,6 +38,18 @@ class UserRegister(BaseModel):
     password: str = Field(min_length=8)
 
 
-class RegisterResponse(UUIDBaseModel):
+class APIRegisterResponse(UUIDBaseModel):
     email: str = Field(description="Email")
     display_name: str = Field(description="Display name")
+
+
+class APIUserInfo(UUIDBaseModel):
+    """
+    User info
+    """
+    model_config = {
+        "use_enum_values": True,
+    }
+    email: str = Field(..., description="Email")
+    display_name: str = Field(..., description="Display name")
+    gender: Optional[Gender] = Field(..., description="Gender")

@@ -6,10 +6,9 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.middleware.cors import CORSMiddleware
 
-from app.libs.utils.lifespan import lifespan
 from app.config import settings
+from app.libs.utils.lifespan import lifespan
 from app.routers import api_router
-from app.container import Container
 
 __all__ = ["app"]
 

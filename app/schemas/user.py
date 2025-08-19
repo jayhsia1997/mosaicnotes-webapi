@@ -5,6 +5,7 @@ from typing import Optional
 
 from pydantic import Field
 from .mixins import UUIDBaseModel
+from app.libs.consts.enums import Gender
 
 
 class UserBase(UUIDBaseModel):
@@ -27,3 +28,4 @@ class UserInfo(UserBase):
     User information.
     """
     display_name: Optional[str] = Field(None, description="Display name")
+    gender: Optional[Gender] = Field(None, description="Gender")
