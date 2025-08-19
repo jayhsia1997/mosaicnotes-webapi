@@ -31,3 +31,16 @@ class LoginResponse(UUIDBaseModel):
     """
     Login response
     """
+    username: str
+    message: str | None = None
+
+
+# User register
+class UserRegister(BaseModel):
+    username: str = Field(min_length=3, max_length=50)
+    password: str = Field(min_length=8)
+    email: str | None = None
+
+class RegisterResponse(BaseModel):
+    id: str
+    username: str
