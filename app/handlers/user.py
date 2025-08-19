@@ -1,21 +1,31 @@
 """
 Handler for user-related operations
 """
+import uuid
+from datetime import datetime, timezone, timedelta
+
+from starlette import status
+
 from app import exceptions
+from app.config import settings
 from app.libs.consts.enums import LoginMethod
 from app.libs.database import Session
+from app.models import User, UserProfile, UserSession
+from app.providers.password_provider import PasswordProvider
+from app.schemas.user import UserBase, UserInfo, UserSecurity
 from app.serializers.v1.user import UserLogin, LoginResponse, RegisterResponse, UserRegister
 
-from app.models.user import User
-from app.libs.utils.security import hash_password, verify_password
-from typing import Optional
-from sqlalchemy import select
 
 class UserHandler:
     """UserHandler"""
 
-    def __init__(self, session: Session = None):
+    def __init__(
+        self,
+        password_provider: PasswordProvider = None,
+        session: Session = None
+    ):
         """initialize"""
+        self._password_provider = password_provider
         self._session = session
 
     async def login(self, model: UserLogin) -> LoginResponse:
@@ -36,43 +46,87 @@ class UserHandler:
         :param model:
         :return:
         """
-        if not model.email or not model.password:
-            raise exceptions.BadRequestException(detail="Email and password are required")
+        user_security: UserBase = await self._session.select(User).where(
+            User.email == model.email.strip().lower()
+        ).fetchrow(UserSecurity)
 
-        email = model.email.strip().lower()
-        stmt = select(User).where(User.email == email)
-        result = await self._session.execute(stmt)
-        user: Optional[User] = result.scalar_one_or_none()
-
-        if not user or not verify_password(model.password, user.password_hash):
+        if not user_security or not self._password_provider.verify_password(
+            password=model.password,
+            password_hash=user_security.password_hash,
+            salt=user_security.salt
+        ):
             raise exceptions.UnauthorizedException(detail="Invalid username or password")
 
-        return LoginResponse(id=str(user.id), username=user.username, message="Login successful")
+        try:
+            # Generate session ID
+            sid = uuid.uuid4()
+            # Store session in database or cache (not implemented here)
+            user_info: UserInfo = await self._session.select(
+                User.id.label("id"),
+                User.email.label("email"),
+                UserProfile.display_name.label("display_name")
+            ).outerjoin(
+                UserProfile, UserProfile.user_id == User.id
+            ).where(User.id == user_security.id).fetchrow(UserInfo)
+
+            expired_at = datetime.now(tz=timezone.utc) + timedelta(seconds=settings.SESSION_TTL)
+            await self._session.insert(UserSession).values(
+                id=sid,
+                user_id=user_security.id,
+                data=user_info.model_dump_json(),
+                expired_at=expired_at
+            ).execute()
+        except Exception as e:
+            await self._session.rollback()
+            raise exceptions.ApiBaseException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to create session: {str(e)}"
+            )
+        else:
+            await self._session.commit()
+        finally:
+            await self._session.close()
+
+        return LoginResponse(id=user_security.id, sid=sid)
 
     async def register(self, model: UserRegister) -> RegisterResponse:
-        if not model.username or not model.password:
-            raise exceptions.BadRequestException(detail="Username and password are required")
+        user_base = self._session.select(User).where(User.email == model.email).fetch(UserBase)
+        if not user_base:
+            raise exceptions.ResourceExistsException(detail="Email already registered")
 
-        
-        stmt = select(User).where(User.username == model.username)
-        result = await self._session.execute(stmt)
-        if result.scalar_one_or_none():
-            raise exceptions.ConflictException(detail="Username already exists")
+        try:
+            user_id = uuid.uuid4()
+            password_hash, salt = self._password_provider.hash_password(password=model.password)
+            await self._session.insert(User).values(
+                id=user_id,
+                email=model.email.strip().lower(),
+                password_hash=password_hash,
+                salt=salt,
+            ).execute()
+            await self._session.insert(UserProfile).values(
+                user_id=user_id,
+                display_name=model.display_name.strip(),
+            ).execute()
+            user_info: UserInfo = await self._session.select(
+                User.id.label("id"),
+                User.email.label("email"),
+                UserProfile.display_name.label("display_name")
+            ).outerjoin(
+                UserProfile, UserProfile.user_id == User.id
+            ).where(User.id == str(user_id)).fetchrow(UserInfo)
+        except Exception as e:
+            await self._session.rollback()
+            raise exceptions.ApiBaseException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to register user: {str(e)}"
+            )
+        else:
+            await self._session.commit()
+        finally:
+            await self._session.close()
 
-       
-        email = model.email.strip().lower() if model.email else None
-        if email:
-            stmt = select(User).where(User.email == email)
-            result = await self._session.execute(stmt)
-            if result.scalar_one_or_none():
-                raise exceptions.ConflictException(detail="Email already registered")
-
-        user = User(username=model.username, email=email, password_hash=hash_password(model.password))
-        self._session.add(user)
-        await self._session.commit()
-        await self._session.refresh(user)
-
-        return RegisterResponse(id=str(user.id), username=user.username)
-
-
-       
+        return RegisterResponse(
+            id=user_info.id,
+            email=user_info.email,
+            display_name=user_info.display_name
+        )

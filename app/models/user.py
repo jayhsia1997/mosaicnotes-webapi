@@ -22,7 +22,7 @@ class UserProfile(ModelBase, DeletedMixin, AuditMixin, DescriptionMixin):
     """User Profile Model"""
     __tablename__ = "user_profile"
     __table_args__ = {"schema": "public"}
-    user_id = Column(String(64), nullable=False, unique=True, comment="User ID")
+    user_id = Column(UUID, ForeignKey(User.id, ondelete="CASCADE"), nullable=False, unique=True, comment="User ID", index=True)
     display_name = Column(String(64), comment="Display name")
     gender = Column(Integer, default=Gender.UNKNOWN.value, comment="Refer to Gender enum")
 
@@ -33,6 +33,6 @@ class UserSession(ModelBase, AuditCreatedAtMixin, AuditUpdatedAtMixin):
     __table_args__ = {"schema": "public"}
     user_id = Column(UUID, ForeignKey(User.id, ondelete="CASCADE"), nullable=False, comment="User ID", index=True)
     data = Column(JSONB, comment="Session data")
-    expired_at = Column(TIMESTAMP, comment="Session expiration time")
+    expired_at = Column(TIMESTAMP(timezone=True), comment="Session expiration time")
     ip_address = Column(String(64), comment="User IP address")
     user_agent = Column(String(256), comment="User agent")

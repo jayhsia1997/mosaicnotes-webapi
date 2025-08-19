@@ -51,6 +51,10 @@ class Configuration(BaseSettings):
     APP_FQDN: str = os.getenv(key="APP_FQDN", default="localhost")
     BASE_URL: str = f"https://{APP_FQDN}" if not IS_DEV else f"http://{APP_FQDN}"  # noqa
 
+    # [Login Session]
+    COOKIE_NAME: str = os.getenv(key="COOKIE_NAME", default="mosaicnotes_sid")
+    SESSION_TTL: int = int(os.getenv(key="SESSION_TTL", default=3600 * 24))  # 24 hours
+
     # [FastAPI]
     HOST: str = os.getenv(key="HOST", default="127.0.0.1")
     PORT: int = os.getenv(key="PORT", default=8000)

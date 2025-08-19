@@ -4,6 +4,7 @@ Dependency injection container for the application.
 from dependency_injector import containers, providers
 
 from app.config import settings
+from app.providers.password_provider import PasswordProvider
 from app.handlers import UserHandler
 from app.libs.database import Session
 from app.libs.database.aio_pg import PostgresConnection
@@ -33,6 +34,9 @@ class Container(containers.DeclarativeContainer):
     postgres_connection = providers.Singleton(PostgresConnection)
     db_session = providers.Factory(Session, postgres_connection=postgres_connection)
 
+    # [Providers]
+    password_provider = providers.Factory(PasswordProvider)
+
     # [Handlers]
     if settings.IS_DEV:
         demo_handler = providers.Factory(
@@ -42,5 +46,6 @@ class Container(containers.DeclarativeContainer):
 
     user_handler = providers.Factory(
         UserHandler,
+        password_provider=password_provider,
         session=db_session
     )

@@ -1,8 +1,8 @@
-"""Create user releated models
+"""Initial revision
 
-Revision ID: ea4e6b5c5a04
+Revision ID: c5933b208584
 Revises: 8125ce6a58d2
-Create Date: 2025-05-04 14:24:14.091148
+Create Date: 2025-08-19 16:17:09.901595
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'ea4e6b5c5a04'
+revision: str = 'c5933b208584'
 down_revision: Union[str, None] = '8125ce6a58d2'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -40,7 +40,7 @@ def upgrade() -> None:
     schema='public'
     )
     op.create_table('user_profile',
-    sa.Column('user_id', sa.String(length=64), nullable=False, comment='User ID'),
+    sa.Column('user_id', sa.UUID(), nullable=False, comment='User ID'),
     sa.Column('display_name', sa.String(length=64), nullable=True, comment='Display name'),
     sa.Column('gender', sa.Integer(), nullable=True, comment='Refer to Gender enum'),
     sa.Column('id', sa.UUID(), server_default=sa.text('gen_random_uuid()'), nullable=False, comment='Primary Key'),
@@ -53,14 +53,15 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False, comment='Update Date'),
     sa.Column('updated_by', sa.String(length=64), nullable=False, comment='Update User Name'),
     sa.Column('description', sa.Text(), nullable=True, comment='Description'),
+    sa.ForeignKeyConstraint(['user_id'], ['public.user.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('user_id'),
     schema='public'
     )
+    op.create_index(op.f('ix_public_user_profile_user_id'), 'user_profile', ['user_id'], unique=True, schema='public')
     op.create_table('user_session',
     sa.Column('user_id', sa.UUID(), nullable=False, comment='User ID'),
     sa.Column('data', postgresql.JSONB(astext_type=sa.Text()), nullable=True, comment='Session data'),
-    sa.Column('expired_at', sa.TIMESTAMP(), nullable=True, comment='Session expiration time'),
+    sa.Column('expired_at', sa.TIMESTAMP(timezone=True), nullable=True, comment='Session expiration time'),
     sa.Column('ip_address', sa.String(length=64), nullable=True, comment='User IP address'),
     sa.Column('user_agent', sa.String(length=256), nullable=True, comment='User agent'),
     sa.Column('id', sa.UUID(), server_default=sa.text('gen_random_uuid()'), nullable=False, comment='Primary Key'),
@@ -89,6 +90,7 @@ def downgrade() -> None:
                existing_nullable=False)
     op.drop_index(op.f('ix_public_user_session_user_id'), table_name='user_session', schema='public')
     op.drop_table('user_session', schema='public')
+    op.drop_index(op.f('ix_public_user_profile_user_id'), table_name='user_profile', schema='public')
     op.drop_table('user_profile', schema='public')
     op.drop_table('user', schema='public')
     # ### end Alembic commands ###

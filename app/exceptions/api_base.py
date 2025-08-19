@@ -44,6 +44,22 @@ class BadRequestException(ApiBaseException):
         self.debug_detail = kwargs.pop('debug_detail', None)
 
 
+class UnauthorizedException(ApiBaseException):
+    """
+    Unauthorized Exception
+    status_code: 401
+    """
+
+    def __init__(
+        self,
+        detail: str,
+        headers: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ):
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail, headers=headers)
+        self.debug_detail = kwargs.pop('debug_detail', None)
+
+
 class NotFoundException(ApiBaseException):
     """
     Not Found Exception
@@ -100,4 +116,3 @@ class ParamError(ApiBaseException):
         detail: str,
     ):
         super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
-
